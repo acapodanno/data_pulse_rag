@@ -1,0 +1,10 @@
+langchain
+langchain-openai
+langchain-community
+chromadb
+pypdf
+python-dotenv
+sentence-transformers
+tabulate
+unstructured
+markdown
