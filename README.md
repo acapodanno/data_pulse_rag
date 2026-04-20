@@ -15,7 +15,8 @@ La fase di preparazione è critica per gestire documenti eterogenei (email, manu
 
 ### B. Indicizzazione e Retrieval Ibrido
 *   **Vector Store**: Utilizzo di **ChromaDB** per la persistenza locale e lo sviluppo rapido.
-*   **Dense Retrieval**: Ricerca semantica basata su vettori per cogliere il significato (es. "accesso dati").  
+*   **Dense Retrieval**: Ricerca semantica basata su vettori per cogliere il significato (es. "accesso dati"). 
+*   **Sparse Retrieval**: Ricerca basata su parole chiave (BM25) per termini specfici
 *   **Metadata Filtering**: Capacità di restringere la ricerca per stato documento o data di validità.
 
 ---
