@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Dense search
 def store_and_retrieve(chunked_documents: list[Document]):
     vector_store = Chroma.from_documents(
         documents=chunked_documents, 
