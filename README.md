@@ -64,7 +64,7 @@ Per i requisiti di compliance di DataPulse:
 ### Esecuzione
 1. **Chat**: Avvia l'interfaccia di interrogazione:
    ```bash
-   python main.py
+   python script.py
    ```
 
 ---
