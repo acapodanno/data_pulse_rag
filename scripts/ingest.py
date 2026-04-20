@@ -17,7 +17,7 @@ def retrieve_documents() -> list[Document]:
         if loader_factory is None:
             print(f"Formato {file} non supportato!")
             continue
-        loader = loader_factory(file_path=f"./data/{file}")
+        loader = loader_factory(path=f"./data/{file}")
         docs = loader.load()
         for doc in docs:
             doc.metadata["file_type"] = ext.lstrip(".")
