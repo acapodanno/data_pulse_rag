@@ -27,6 +27,6 @@ def get_retriever():
         ),
     )
     return vector_store.as_retriever(
-        search_type="mmr",
+        search_type="mmr", # Max Marginal Relevance
         search_kwargs={'k': 3, 'fetch_k': 10}
     )
