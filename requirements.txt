@@ -9,3 +9,4 @@ tabulate
 unstructured
 markdown
 langchain-chroma
+docx2txt
