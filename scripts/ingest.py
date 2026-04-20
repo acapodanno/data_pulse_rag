@@ -21,7 +21,7 @@ def retrieve_documents() -> list[Document]:
         docs = loader.load()
         for doc in docs:
             doc.metadata["file_type"] = ext.lstrip(".")
-            doc.metadata["source"] = file
+            doc.metadata["source"] = f"./data/{file}"
         documents.extend(docs)
     return documents
 
@@ -38,7 +38,6 @@ def chunk_documents(documents: list[Document]) -> list[Document]:
     for doc in documents:
         file_type = doc.metadata.get("file_type", "txt")
         separators = SEPARATORS_MAP.get(file_type, ["\n\n", "\n", " ", ""])
-
         splitter = RecursiveCharacterTextSplitter(
             separators=separators,
             chunk_size=1000,

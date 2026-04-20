@@ -10,3 +10,4 @@ unstructured
 markdown
 langchain-chroma
 docx2txt
+rank_bm25
