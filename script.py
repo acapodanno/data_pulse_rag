@@ -153,7 +153,7 @@ if __name__ == "__main__":
             break
         answer = rag_chain.invoke({"input": question})
         print(f"\nRisposta: {answer['answer']}")
-        print("\n📚 Sorgenti:")
+        print("\nSorgenti:")
         seen = set()
         for doc in answer["context"]:
             src = doc.metadata.get("source", "sconosciuta")
