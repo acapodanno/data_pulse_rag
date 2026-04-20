@@ -15,4 +15,7 @@ def store_and_retrieve(chunked_documents: list[Document]):
         persist_directory="./chroma_db",
         collection_name="data_pulse",
     )
-    return vector_store.as_retriever()
+    return vector_store.as_retriever(
+        search_type="mmr", # Max Marginal Relevance
+        search_kwargs={'k': 3, 'fetch_k': 10}
+        )

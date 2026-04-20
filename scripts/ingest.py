@@ -7,21 +7,17 @@ def retrieve_documents() -> list[Document]:
     files = os.listdir("./data")
     documents = []
     for file in files:
-        loader = UnstructuredMarkdownLoader(file_path=f"./data/{file}",mode="elements")
+        loader = UnstructuredMarkdownLoader(file_path=f"./data/{file}",mode="single")
         documents.extend(loader.load())
     return documents
 
 
 def chunk_documents(documents: list[Document]) -> list[Document]:
     text_splitter = RecursiveCharacterTextSplitter(
-        separators=["#", "##", "###"],
+        separators=["\n# ", "\n## ", "\n### ", "\n\n", "\n", " ", ""],
         chunk_size=1000,
         chunk_overlap=200,
         length_function=len,
+        
     )
     return text_splitter.split_documents(documents)
-
-
-if __name__ == "__main__":
-    documents = retrieve_documents()
-    chunked_documents = chunk_documents(documents)
