@@ -22,7 +22,9 @@ def get_retriever():
     vector_store = Chroma(
         persist_directory="./chroma_db",
         collection_name="data_pulse",
-        embedding_function=OpenAIEmbeddings(...),
+        embedding_function=OpenAIEmbeddings(
+             model="text-embedding-3-large",
+        ),
     )
     return vector_store.as_retriever(
         search_type="mmr",
