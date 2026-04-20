@@ -68,5 +68,3 @@ Per i requisiti di compliance di DataPulse:
    ```
 
 ---
-
-*Documentazione tecnica redatta per il team IT di DataPulse S.p.A.*
