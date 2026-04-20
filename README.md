@@ -62,11 +62,7 @@ Per i requisiti di compliance di DataPulse:
 2. Configura le variabili d'ambiente nel file `.env` (usa `.env.example` come base).
 
 ### Esecuzione
-1. **Ingestion**: Carica e vettorizza i documenti nella cartella `data/`:
-   ```bash
-   python -m scripts.ingest
-   ```
-2. **Chat**: Avvia l'interfaccia di interrogazione:
+1. **Chat**: Avvia l'interfaccia di interrogazione:
    ```bash
    python main.py
    ```
