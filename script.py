@@ -153,13 +153,5 @@ if __name__ == "__main__":
             break
         answer = rag_chain.invoke({"input": question})
         print(f"\nRisposta: {answer['answer']}")
-        print("\nSorgenti:")
-        seen = set()
         for doc in answer["context"]:
-            src = doc.metadata.get("source", "sconosciuta")
-            ftype = doc.metadata.get("file_type", "").upper()
-            label = f"  📄 {src} [{ftype}]"
-            if label not in seen:
-                print(label)
-                seen.add(label)
-        print()
+            print(f"- {doc.metadata.get('source')}")

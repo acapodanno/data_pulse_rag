@@ -11,4 +11,4 @@ if __name__ == "__main__":
     answer = rag_chain.invoke({"input": question})
     print("Answer:", answer["answer"])
     for doc in answer["context"]:
-        print(f"  📄 {doc.metadata.get('source')}")
+        print(f"- {doc.metadata.get('source')}")
