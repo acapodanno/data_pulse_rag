@@ -1,3 +1,4 @@
+### ingest.py
 from langchain_community.document_loaders import UnstructuredMarkdownLoader, UnstructuredPDFLoader, UnstructuredWordDocumentLoader, UnstructuredFileLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
@@ -21,7 +22,7 @@ def retrieve_documents() -> list[Document]:
         docs = loader.load()
         for doc in docs:
             doc.metadata["file_type"] = ext.lstrip(".")
-            doc.metadata["source"] = file
+            doc.metadata["source"] = f"./data/{file}"
         documents.extend(docs)
     return documents
 
@@ -38,31 +39,39 @@ def chunk_documents(documents: list[Document]) -> list[Document]:
     for doc in documents:
         file_type = doc.metadata.get("file_type", "txt")
         separators = SEPARATORS_MAP.get(file_type, ["\n\n", "\n", " ", ""])
-
         splitter = RecursiveCharacterTextSplitter(
             separators=separators,
-            chunk_size=1000,
-            chunk_overlap=200,
+            chunk_size=800,
+            chunk_overlap=120,
             length_function=len,
         )
         chunked.extend(splitter.split_documents([doc]))
 
     return chunked
 
+### retriever.py
+from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
+from langchain_classic.retrievers import EnsembleRetriever
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# Dense search
 def build_vector_store(chunked_documents: list[Document]):
+    # Cancella la collection esistente per evitare accumulo di dati stantii/duplicati
+    import chromadb
+    client = chromadb.PersistentClient(path="./chroma_db")
+    try:
+        client.delete_collection("data_pulse")
+    except Exception:
+        pass  # collection non esisteva, va bene
+
     vector_store = Chroma.from_documents(
-        documents=chunked_documents, 
+        documents=chunked_documents,
         embedding=OpenAIEmbeddings(
-             model="text-embedding-3-large",
+            model="text-embedding-3-large",
         ),
         persist_directory="./chroma_db",
         collection_name="data_pulse",
@@ -70,7 +79,6 @@ def build_vector_store(chunked_documents: list[Document]):
     return vector_store
 
 def get_dense_retriever():
-    """Dense retriever: ricerca semantica su ChromaDB (MMR)."""
     vector_store = Chroma(
         persist_directory="./chroma_db",
         collection_name="data_pulse",
@@ -79,25 +87,25 @@ def get_dense_retriever():
         ),
     )
     return vector_store.as_retriever(
-        search_type="mmr",  # Max Marginal Relevance
-        search_kwargs={"k": 3, "fetch_k": 10}
+        search_type="mmr", # Max Marginal Relevance
+        search_kwargs={'k': 3, 'fetch_k': 10}
     )
 
+# sparse retriever
+def get_sparse_retriever(chunked_documents: list[Document]):
+    return BM25Retriever.from_documents(chunked_documents)
+
+# 30% sparse + 70% dense
 def get_hybrid_retriever(chunked_documents: list[Document]):
-    """Hybrid retriever: BM25 (sparse) + ChromaDB MMR (dense) via EnsembleRetriever."""
-    # BM25 — ricerca keyword esatta, in-memory, nessun costo API
-    bm25_retriever = BM25Retriever.from_documents(chunked_documents)
+    bm25_retriever = get_sparse_retriever(chunked_documents)
     bm25_retriever.k = 3
-
-    # Dense — ricerca semantica su ChromaDB
     dense_retriever = get_dense_retriever()
-
-    # Ensemble con pesi uguali (50% BM25, 50% dense) e Reciprocal Rank Fusion
     return EnsembleRetriever(
         retrievers=[bm25_retriever, dense_retriever],
-        weights=[0.5, 0.5],
+        weights=[0.3, 0.7],
     )
 
+### rag_chain.py
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
@@ -131,21 +139,10 @@ def setup_chain(retriever):
     return retrieval_chain
 
 if __name__ == "__main__":
-    # BM25 è in-memory: i chunk servono sempre
     documents = retrieve_documents()
     chunked_documents = chunk_documents(documents)
-
-    # ChromaDB: indicizza solo se non esiste già
-    if not os.path.exists("./chroma_db"):
-        print("[INIT] Nessun DB trovato, avvio indicizzazione dense...")
-        build_vector_store(chunked_documents)
-    else:
-        print("[INIT] DB ChromaDB esistente trovato, skip indicizzazione.")
-
-    # Hybrid retriever: BM25 + dense
-    retriever = get_hybrid_retriever(chunked_documents)
-    rag_chain = setup_chain(retriever)
-
+    build_vector_store(chunked_documents)
+    rag_chain = setup_chain(get_hybrid_retriever(chunked_documents))
     print("\nData Pulse Assistant è pronto! (Scrivi 'esci' o 'exit' per terminare)")
     while True:
         question = input("\nFai una domanda: ").strip()
