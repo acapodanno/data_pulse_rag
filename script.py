@@ -1,26 +1,53 @@
-from langchain_community.document_loaders import UnstructuredMarkdownLoader
+from langchain_community.document_loaders import UnstructuredMarkdownLoader, UnstructuredPDFLoader, UnstructuredWordDocumentLoader, UnstructuredFileLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 import os 
-
+LOADER_MAP = {
+    ".md": lambda path: UnstructuredMarkdownLoader(file_path=path, mode="single"),
+    ".pdf": lambda path: UnstructuredPDFLoader(file_path=path),
+    ".docx": lambda path: UnstructuredWordDocumentLoader(file_path=path),
+    ".txt": lambda path: UnstructuredFileLoader(file_path=path),
+}
 def retrieve_documents() -> list[Document]:
     files = os.listdir("./data")
     documents = []
     for file in files:
-        loader = UnstructuredMarkdownLoader(file_path=f"./data/{file}",mode="single")
-        documents.extend(loader.load())
+        ext = os.path.splitext(file)[1].lower()
+        loader_factory = LOADER_MAP.get(ext)
+        if loader_factory is None:
+            print(f"Formato {file} non supportato!")
+            continue
+        loader = loader_factory(path=f"./data/{file}")
+        docs = loader.load()
+        for doc in docs:
+            doc.metadata["file_type"] = ext.lstrip(".")
+            doc.metadata["source"] = file
+        documents.extend(docs)
     return documents
 
+SEPARATORS_MAP = {
+    "md":   ["\n# ", "\n## ", "\n### ", "\n\n", "\n", " ", ""],
+    "pdf":  ["\n\n", "\n", ". ", " ", ""],
+    "docx": ["\n\n", "\n", ". ", " ", ""],
+    "txt":  ["\n\n", "\n", " ", ""],
+}
 
 def chunk_documents(documents: list[Document]) -> list[Document]:
-    text_splitter = RecursiveCharacterTextSplitter(
-        separators=["\n# ", "\n## ", "\n### ", "\n\n", "\n", " ", ""],
-        chunk_size=1000,
-        chunk_overlap=200,
-        length_function=len,
-        
-    )
-    return text_splitter.split_documents(documents)
+    chunked = []
+
+    for doc in documents:
+        file_type = doc.metadata.get("file_type", "txt")
+        separators = SEPARATORS_MAP.get(file_type, ["\n\n", "\n", " ", ""])
+
+        splitter = RecursiveCharacterTextSplitter(
+            separators=separators,
+            chunk_size=1000,
+            chunk_overlap=200,
+            length_function=len,
+        )
+        chunked.extend(splitter.split_documents([doc]))
+
+    return chunked
 
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
@@ -30,7 +57,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def store_and_retrieve(chunked_documents: list[Document]):
+# Dense search
+def build_vector_store(chunked_documents: list[Document]):
     vector_store = Chroma.from_documents(
         documents=chunked_documents, 
         embedding=OpenAIEmbeddings(
@@ -39,10 +67,21 @@ def store_and_retrieve(chunked_documents: list[Document]):
         persist_directory="./chroma_db",
         collection_name="data_pulse",
     )
+    return vector_store
+
+def get_retriever():
+    vector_store = Chroma(
+        persist_directory="./chroma_db",
+        collection_name="data_pulse",
+        embedding_function=OpenAIEmbeddings(
+             model="text-embedding-3-large",
+        ),
+    )
     return vector_store.as_retriever(
         search_type="mmr", # Max Marginal Relevance
         search_kwargs={'k': 3, 'fetch_k': 10}
-        )
+    )
+
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
@@ -76,10 +115,11 @@ def setup_chain(retriever):
     return retrieval_chain
 
 if __name__ == "__main__":
-    documents = retrieve_documents()
-    chunked_documents = chunk_documents(documents)
-    retriever = store_and_retrieve(chunked_documents)
-    rag_chain = setup_chain(retriever)
+    if not os.path.exists("./chroma_db"):
+        documents = retrieve_documents()
+        chunked_documents = chunk_documents(documents)
+        build_vector_store(chunked_documents)
+    rag_chain = setup_chain(get_retriever())
     print("Data Pulse Assistant é pronto! (Scrivi 'esci', 'exit' o premi Ctrl+C per terminare)")
     while True:
         question = input("\nFai una domanda: ")
@@ -88,3 +128,5 @@ if __name__ == "__main__":
             break
         answer = rag_chain.invoke({"input": question})
         print("Answer:", answer["answer"])
+        for doc in answer["context"]:
+            print(f"  📄 {doc.metadata.get('source')}")
