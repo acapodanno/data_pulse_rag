@@ -40,8 +40,8 @@ def chunk_documents(documents: list[Document]) -> list[Document]:
         separators = SEPARATORS_MAP.get(file_type, ["\n\n", "\n", " ", ""])
         splitter = RecursiveCharacterTextSplitter(
             separators=separators,
-            chunk_size=1000,
-            chunk_overlap=200,
+            chunk_size=800,
+            chunk_overlap=120,
             length_function=len,
         )
         chunked.extend(splitter.split_documents([doc]))
