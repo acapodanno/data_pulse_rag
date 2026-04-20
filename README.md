@@ -10,7 +10,7 @@ Il sistema è modulare, permettendo la sostituzione dei componenti (modelli di e
 ### A. Modulo di Ingestion & Processing
 La fase di preparazione è critica per gestire documenti eterogenei (email, manuali, policy):
 *   **Document Loading**: Utilizzo di `LangChain` per il caricamento di file PDF, Markdown e TXT.
-*   **Chunking Strategico**: Utilizzo di `RecursiveCharacterTextSplitter` con un **overlap del 10-15%** (circa 120 caratteri su chunk di 800) per mantenere la coerenza del contesto tecnico.
+*   **Chunking Strategico**: Utilizzo di `RecursiveCharacterTextSplitter` con un **overlap del 10-15%** (circa 200 caratteri su chunk di 1000) per mantenere la coerenza del contesto tecnico.
 *   **Arricchimento Metadati**: Ogni chunk include: `source_file`, `last_updated`, `compliance_tag`, `version`.
 
 ### B. Indicizzazione e Retrieval Ibrido
